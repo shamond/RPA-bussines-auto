@@ -14,13 +14,13 @@ ATTACHMENTS_DIR = "attachments"
 os.makedirs(ATTACHMENTS_DIR, exist_ok=True)
 
 def fetch_attachments():
-    # Logoging
+    # logoging
     mail = imaplib.IMAP4_SSL(IMAP_SERVER)
     mail.login(EMAIL_ACCOUNT, EMAIL_PASSWORD)
     mail.select("inbox")
 
     #download all unread messages
-    status, messages = mail.search(None, "UNSEEN")  # Możesz użyć "ALL" zamiast "UNSEEN"
+    status, messages = mail.search(None, "UNSEEN")
 
     for msg_id in messages[0].split():
         # download email
