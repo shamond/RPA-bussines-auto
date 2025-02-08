@@ -21,8 +21,7 @@ LOGO_PATH = "logo.png"
 SPRZEDAWCA = {
     "nazwa": "Firma XYZ Sp. z o.o.",
     "adres": "ul. Przykładowa 1, 00-001 Warszawa",
-    "nip": "123-456-78-90",
-    "konto": f"PL{random.randint(10**25, 10**26 - 1)}"
+    "nip": "123-456-78-90"
 }
 
 NABYWCA = {
@@ -31,8 +30,9 @@ NABYWCA = {
     "nip": "987-654-32-10"
 }
 
+
 # Lista produktów
-PRODUKTY = [
+PRODUKTY_FIRMY = [
     ("Usługa konsultingowa", 1000, 23),
     ("Licencja na oprogramowanie", 2500, 23),
     ("Szkolenie online", 500, 23),
@@ -46,6 +46,25 @@ PRODUKTY = [
     ("Opłata za domenę", 150, 23)
 ]
 
+PRODUKTY_NABYWANE = [
+    ("Papier do drukarki A4", 25, 23),
+    ("Tonery do drukarki", 200, 23),
+    ("Usługi księgowe", 500, 23),
+    ("Licencja na oprogramowanie księgowe", 1200, 23),
+    ("Meble biurowe", 1500, 23),
+    ("Komputery stacjonarne", 4000, 23),
+    ("Laptop", 4500, 23),
+    ("Telefony służbowe", 2500, 23),
+    ("Serwis sprzętu IT", 800, 8),
+    ("Długopis", 5, 23),
+    ("Notes", 2, 23),
+    ("Internet firmowy", 150, 23),
+    ("Kawa i herbata dla pracowników", 100, 8),
+    ("Kampania reklamowa online", 3000, 23),
+    ("Ubezpieczenie sprzętu firmowego", 1200, 8),
+    ("Usługi sprzątające", 600, 8)
+]
+
 def generuj_qr(numer_faktury, kwota, konto):
     """Generuje kod QR z danymi przelewu."""
     dane_przelewu = f"PL|{konto}|{kwota}|{numer_faktury}|Firma XYZ Sp. z o.o."
@@ -55,6 +74,7 @@ def generuj_qr(numer_faktury, kwota, konto):
     return qr_path
 
 def generuj_fakture():
+    change_role = [NABYWCA, SPRZEDAWCA]
     numer_faktury = f"FV-{random.randint(1000, 99999)}_{datetime.now().month}_{datetime.now().year}"
     data_wystawienia = datetime.now().strftime("%Y-%m-%d")
     termin_platnosci = (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d")
@@ -65,8 +85,11 @@ def generuj_fakture():
     plik_faktury = os.path.join(OUTPUT_DIR, f"{numer_faktury}.pdf")
     c = canvas.Canvas(plik_faktury, pagesize=A4)
 
-    if os.path.exists(LOGO_PATH):
-        c.drawImage(LOGO_PATH, 50, 730, width=50, height=100, mask='auto')
+    choiced_seller = random.choice(change_role)
+
+    if choiced_seller['nazwa'] == SPRZEDAWCA['nazwa']:
+        if os.path.exists(LOGO_PATH):
+            c.drawImage(LOGO_PATH, 50, 730, width=50, height=100, mask='auto')
 
     # Nagłówek faktury
     c.setFont("Arial", 16)
@@ -75,23 +98,28 @@ def generuj_fakture():
     c.drawString(200, 780, f"Numer: {numer_faktury}")
     c.drawString(200, 765, f"Data wystawienia: {data_wystawienia}")
 
-    #
     c.setStrokeColor(colors.black)
     c.line(50, 715, 550, 715)
 
     # Sprzedawca
     c.setFont("Arial", 12)
     c.drawString(50, 720, "Sprzedawca:")
-    c.drawString(50, 700, f"{SPRZEDAWCA['nazwa']}")
-    c.drawString(50, 685, f"{SPRZEDAWCA['adres']}")
-    c.drawString(50, 670, f"NIP: {SPRZEDAWCA['nip']}")
-    c.drawString(50, 655, f"Konto: {SPRZEDAWCA['konto']}")
+    c.drawString(50, 700, f"{choiced_seller['nazwa']}")
+    c.drawString(50, 685, f"{choiced_seller['adres']}")
+    c.drawString(50, 670, f"NIP: {choiced_seller['nip']}")
+    choiced_seller["konto"] = f"PL{random.randint(10**25, 10**26 - 1)}"
+    c.drawString(50, 655, f"Konto: {choiced_seller['konto']}")
 
     # Nabywca
+    choiced_buyer = random.choice(change_role)
+    while choiced_buyer['nazwa'] == choiced_seller['nazwa']:
+        choiced_buyer = random.choice(change_role)
+
+
     c.drawString(300, 720, "Nabywca:")
-    c.drawString(300, 700, f"{NABYWCA['nazwa']}")
-    c.drawString(300, 685, f"{NABYWCA['adres']}")
-    c.drawString(300, 670, f"NIP: {NABYWCA['nip']}")
+    c.drawString(300, 700, f"{choiced_buyer['nazwa']}")
+    c.drawString(300, 685, f"{choiced_buyer['adres']}")
+    c.drawString(300, 670, f"NIP: {choiced_buyer['nip']}")
 
     # 🔹 Linia pod danymi sprzedawcy i nabywcy
     c.line(50, 650, 550, 650)
@@ -109,7 +137,10 @@ def generuj_fakture():
     suma_netto = suma_brutto = 0
 
     # Losowe produkty
-    wybrane_produkty = random.sample(PRODUKTY, random.randint(1, 6))
+    if choiced_seller['nazwa'] == SPRZEDAWCA['nazwa']:
+        wybrane_produkty = random.sample(PRODUKTY_FIRMY, random.randint(1, 6))
+    else:
+        wybrane_produkty = random.sample(PRODUKTY_NABYWANE,random.randint(1,16))
 
     for i, (nazwa, cena_netto, vat) in enumerate(wybrane_produkty, 1):
         ilosc = random.randint(1, 5)
@@ -138,9 +169,10 @@ def generuj_fakture():
     c.line(50, y-70, 550, y-70)
 
     # Dodanie kodu QR (jeśli faktura nieopłacona)
-    if status_faktury == "Do zapłaty":
-        qr_path = generuj_qr(numer_faktury, suma_brutto, SPRZEDAWCA['konto'])
-        c.drawImage(qr_path, 400, y-65, width=60, height=60, mask='auto')
+    if choiced_seller['nazwa'] == SPRZEDAWCA['nazwa']:
+        if status_faktury == "Do zapłaty":
+            qr_path = generuj_qr(numer_faktury, suma_brutto, choiced_seller['konto'])
+            c.drawImage(qr_path, 400, y-65, width=60, height=60, mask='auto')
 
     # Status płatności
     c.setFont("Arial", 12)
